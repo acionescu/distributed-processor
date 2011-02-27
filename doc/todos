@@ -1,0 +1,7 @@
+Create a processing node that will know how to receive and send messages
+This node will load a list of services specified in a prop file.
+
+Each service will specify what kind of messages it knows to process.
+
+On connection each node will advertise the loaded services.
+
