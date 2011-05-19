@@ -36,6 +36,8 @@ import org.jgroups.View;
 
 import ro.zg.commons.exceptions.ContextAwareException;
 import ro.zg.log.Log;
+import ro.zg.util.logging.Logger;
+import ro.zg.util.logging.MasterLogManager;
 import ro.zg.util.processing.Destination;
 import ro.zg.util.processing.GenericSource;
 import ro.zg.util.processing.RunnableProcessor;
@@ -50,6 +52,7 @@ import ro.zg.util.processing.RunnableProcessor;
  * 
  */
 public class ProcessingNode implements Receiver, Destination<Task, TaskProcessingResponse> {
+    private static final Logger logger = MasterLogManager.getLogger("ProcessingNode");
     public static String DISTRIBUTED_PROCESSOR_PROPERTIES_FILE = "node.properties";
     private static final String GROUP_NAME = "group.name";
     private static final String SERVICE_PREFIX = "service.";
@@ -67,7 +70,7 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
      * the tasks that were sent to be processed and expecting the result
      */
     private Map<Long, ProcessingResponseReceiver> pendingRequests = new Hashtable<Long, ProcessingResponseReceiver>();
-    
+
     private Map<Long, BroadcastTaskProcessingResponse> pendigBroadcastRequests = new Hashtable<Long, BroadcastTaskProcessingResponse>();
     /**
      * Holds the tasks that are currently processed by this node
@@ -98,13 +101,14 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
     public ProcessingNode() {
 	localServices = new HashMap<DistributedServiceDescription, DistributedService>();
 	loadProperties();
-	// executor = Executors.newFixedThreadPool(maxConcurentTasksToProcess);
 	executor = Executors.newCachedThreadPool();
     }
 
     public ProcessingNode(String groupName) {
 	this();
-	this.groupName = groupName;
+	if (groupName != null) {
+	    this.groupName = groupName;
+	}
     }
 
     /**
@@ -117,7 +121,7 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
 	    props.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(
 		    DISTRIBUTED_PROCESSOR_PROPERTIES_FILE));
 	} catch (Exception e) {
-	    Log.error(this, "Could not load props file " + DISTRIBUTED_PROCESSOR_PROPERTIES_FILE, e);
+	    Log.warn(this, "Could not load props file " + DISTRIBUTED_PROCESSOR_PROPERTIES_FILE);
 	}
 
 	for (Map.Entry<?, ?> entry : props.entrySet()) {
@@ -154,16 +158,20 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
      * @throws ChannelException
      */
     public void connect() throws ChannelException {
+	if(groupName == null) {
+	    throw new IllegalStateException("The groupName cannot be null");
+	}
 	if (channel == null) {
 	    channel = new JChannel();
 	} else if (channel.isConnected()) {
 	    throw new RuntimeException("Channel is already connected");
 	}
-
+	logger.debug("Starting node with groupName '" + groupName + "'");
 	// String groupName = groupName;
 	channel.setReceiver(this);
 	channel.connect(groupName);
 	channel.getState(null, 0);
+	logger.info("Node successfuly connected on group " + groupName);
     }
 
     public boolean isConnected() {
@@ -186,6 +194,7 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
     }
 
     private void startServices() throws ContextAwareException {
+	logger.debug("Starting services");
 	for (DistributedService ds : localServices.values()) {
 	    ds.start();
 	}
@@ -271,8 +280,7 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
 		    resp.setSuccessfull(false);
 		}
 	    }
-	}
-	else {
+	} else {
 	    resp.setSuccessfull(false);
 	    resp.setError(new Exception("No address registered for service " + sd));
 	}
@@ -370,17 +378,16 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
 	    TaskProcessingResponse resp = (TaskProcessingResponse) obj;
 	    long taskId = resp.getTaskId();
 	    BroadcastTaskProcessingResponse btpr = pendigBroadcastRequests.get(taskId);
-	    if(btpr != null) {
+	    if (btpr != null) {
 		btpr.addNewResponse(resp);
-		if(btpr.allResponsesReceived()) {
+		if (btpr.allResponsesReceived()) {
 		    resp = btpr;
-		}
-		else {
+		} else {
 		    /* wait for the all the responses */
 		    return;
 		}
 	    }
-	    
+
 	    ProcessingResponseReceiver receiver = pendingRequests.remove(resp.getTaskId());
 	    if (receiver == null) {
 		throw new Exception("No receiver found for taskId " + resp.getTaskId());

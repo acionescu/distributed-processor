@@ -69,9 +69,9 @@ public class DefaultProcessingNodeFactory implements ObjectFactory<ProcessingNod
 	if (template == null) {
 	    errors.add("ProcessingNodeConfiguration object cannot be null");
 	} else {
-	    if (template.getGroupName() == null) {
-		errors.add("groupName field cannot be null");
-	    }
+//	    if (template.getGroupName() == null) {
+//		errors.add("groupName field cannot be null");
+//	    }
 	}
 	return errors;
     }
