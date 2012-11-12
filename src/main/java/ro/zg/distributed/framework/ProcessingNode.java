@@ -489,6 +489,10 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
     public Map<DistributedServiceDescription, DistributedService> getLocalServices() {
 	return localServices;
     }
+    
+    public DistributedService getLocalServiceByDesc(DistributedServiceDescription desc){
+	return localServices.get(desc);
+    }
 
     /**
      * @param localServices
