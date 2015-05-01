@@ -17,14 +17,18 @@ package ro.zg.distributed.framework;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import ro.zg.commons.exceptions.ContextAwareException;
 import ro.zg.util.data.reflection.ReflectionUtility;
+import ro.zg.util.logging.Logger;
+import ro.zg.util.logging.MasterLogManager;
 
 public class ReflectionBasedDistributedService extends AbstractDistributedService {
+    private static Logger logger = MasterLogManager.getLogger(ReflectionBasedDistributedService.class.getName());
     private Object targetObject;
     private Map<String, List<String>> argumentsForMethods;
     private Map<String, Class<?>[]> compiledArgumetsTypes;
@@ -83,13 +87,20 @@ public class ReflectionBasedDistributedService extends AbstractDistributedServic
 	Serializable resp = null;
 	TaskProcessingResponse tpr = null;
 	
+	
+	
+	
 	try {
 	    if (argumentsTypes != null) {
-		resp = (Serializable) ReflectionUtility.callMethod(targetObject, methodName, (Object[]) task
-			.getContent(), argumentsTypes);
+		if(logger.isDebugEnabled()) {
+		    logger.debug("Calling method '"+methodName+"' on object "+targetObject+" with arguments "+Arrays.asList(arguments)+" with types "+Arrays.asList(argumentsTypes));
+		}
+		resp = (Serializable) ReflectionUtility.callMethod(targetObject, methodName, arguments, argumentsTypes);
 	    } else {
-		resp = (Serializable) ReflectionUtility.callMethod(targetObject, methodName, (Object[]) task
-			.getContent());
+		if(logger.isDebugEnabled()) {
+		    logger.debug("Calling method '"+methodName+"' on object "+targetObject+((arguments != null)?" with arguments "+Arrays.asList(arguments):""));
+		}
+		resp = (Serializable) ReflectionUtility.callMethod(targetObject, methodName, arguments);
 	    }
 	    tpr = new TaskProcessingResponse(task.getTaskId(), resp);
 	} catch (Exception e) {

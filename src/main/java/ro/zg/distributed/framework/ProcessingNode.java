@@ -15,7 +15,6 @@
  ******************************************************************************/
 package ro.zg.distributed.framework;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -35,6 +34,10 @@ import org.jgroups.Receiver;
 import org.jgroups.View;
 
 import ro.zg.commons.exceptions.ContextAwareException;
+import ro.zg.eventbus.Event;
+import ro.zg.eventbus.EventBus;
+import ro.zg.eventbus.EventListener;
+import ro.zg.eventbus.SimpleEventBus;
 import ro.zg.log.Log;
 import ro.zg.util.logging.Logger;
 import ro.zg.util.logging.MasterLogManager;
@@ -51,7 +54,7 @@ import ro.zg.util.processing.RunnableProcessor;
  *         name>.class - class name for the service
  * 
  */
-public class ProcessingNode implements Receiver, Destination<Task, TaskProcessingResponse> {
+public class ProcessingNode implements Receiver, Destination<Task, TaskProcessingResponse>{
     private static final Logger logger = MasterLogManager.getLogger("ProcessingNode");
     public static String DISTRIBUTED_PROCESSOR_PROPERTIES_FILE = "node.properties";
     private static final String GROUP_NAME = "group.name";
@@ -98,6 +101,8 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
 
     private boolean started = false;
 
+    private EventBus internalEventBus = new SimpleEventBus();
+
     public ProcessingNode() {
 	localServices = new HashMap<DistributedServiceDescription, DistributedService>();
 	loadProperties();
@@ -118,8 +123,8 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
 	// TODO: load properties - if not found try to get the file from the system properties
 	props = new Properties();
 	try {
-	    props.load(Thread.currentThread().getContextClassLoader().getResourceAsStream(
-		    DISTRIBUTED_PROCESSOR_PROPERTIES_FILE));
+	    props.load(Thread.currentThread().getContextClassLoader()
+		    .getResourceAsStream(DISTRIBUTED_PROCESSOR_PROPERTIES_FILE));
 	} catch (Exception e) {
 	    Log.warn(this, "Could not load props file " + DISTRIBUTED_PROCESSOR_PROPERTIES_FILE);
 	}
@@ -158,7 +163,7 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
      * @throws ChannelException
      */
     public void connect() throws ChannelException {
-	if(groupName == null) {
+	if (groupName == null) {
 	    throw new IllegalStateException("The groupName cannot be null");
 	}
 	if (channel == null) {
@@ -287,6 +292,18 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
 	return resp;
     }
 
+    public boolean postEvent(Event event) {
+	Message msg = new Message();
+	msg.setObject(event);
+	try {
+	    sendMessage(msg);
+	    return true;
+	} catch (Exception e) {
+	    logger.error("Failed to send event " + event, e);
+	    return false;
+	}
+    }
+
     private Address getProcessingAddressForService(DistributedServiceDescription sd) {
 	List<Address> servAddresses = globalServices.get(sd);
 	int size;
@@ -357,17 +374,9 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
      */
     private void processMessage(Message msg) throws Exception {
 	Object obj = msg.getObject();
-	// advertise messages
-	if (obj instanceof DistributedServiceDescription[]) {
-	    DistributedServiceDescription[] servDesc = (DistributedServiceDescription[]) obj;
-	    Log.info(this, "Receivd advertise message: " + Arrays.asList(servDesc));
-	    for (DistributedServiceDescription desc : servDesc) {
-		addServiceToGlobalServices(desc, msg.getSrc());
-	    }
-	    Log.info(this, "New state after advertise: " + globalServices);
-	}
+	//TODO : get rid of this messy instanceof shit.. use a carrier object with a flag..
 	// task messages
-	else if (obj instanceof Task) {
+	if (obj instanceof Task) {
 	    Task task = (Task) obj;
 	    // Log.info(this, "Received task for" + task.getTargetService());
 	    processTask(task, msg.getSrc());
@@ -393,6 +402,19 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
 		throw new Exception("No receiver found for taskId " + resp.getTaskId());
 	    }
 	    receiver.receiveProcessingResponse(resp);
+	}
+	else if (obj instanceof Event) {
+	    /* delegate to the internal event bus */
+	    internalEventBus.postEvent((Event)obj);
+	}
+	// advertise messages
+	else if (obj instanceof DistributedServiceDescription[]) {
+	    DistributedServiceDescription[] servDesc = (DistributedServiceDescription[]) obj;
+	    Log.info(this, "Receivd advertise message: " + Arrays.asList(servDesc));
+	    for (DistributedServiceDescription desc : servDesc) {
+		addServiceToGlobalServices(desc, msg.getSrc());
+	    }
+	    Log.info(this, "New state after advertise: " + globalServices);
 	}
 	// unknown
 	else {
@@ -489,8 +511,8 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
     public Map<DistributedServiceDescription, DistributedService> getLocalServices() {
 	return localServices;
     }
-    
-    public DistributedService getLocalServiceByDesc(DistributedServiceDescription desc){
+
+    public DistributedService getLocalServiceByDesc(DistributedServiceDescription desc) {
 	return localServices.get(desc);
     }
 
@@ -564,5 +586,19 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
     public Address getLocalNodeAddress() {
 	return channel.getLocalAddress();
     }
+    
+    /**
+     * Registers an event listener to the internal event bus
+     * @param listener
+     */
+    public void registerEventListener(EventListener listener) {
+	internalEventBus.registerListener(listener);
+    }
+    
+    
+    public void removeEventListener(EventListener listener) {
+	internalEventBus.removeListener(listener);
+    }
+    
 
 }
