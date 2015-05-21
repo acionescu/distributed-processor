@@ -55,7 +55,7 @@ import ro.zg.util.processing.RunnableProcessor;
  * 
  */
 public class ProcessingNode implements Receiver, Destination<Task, TaskProcessingResponse>{
-    private static final Logger logger = MasterLogManager.getLogger("ProcessingNode");
+    private static final Logger logger = MasterLogManager.getLogger(ProcessingNode.class.getName());
     public static String DISTRIBUTED_PROCESSOR_PROPERTIES_FILE = "node.properties";
     private static final String GROUP_NAME = "group.name";
     private static final String SERVICE_PREFIX = "service.";
@@ -153,7 +153,7 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
      */
     public void addService(DistributedService service) {
 	localServices.put(service.getServiceDescription(), service);
-	Log.info(this, "Added service " + service.getServiceDescription());
+	logger.info("SERVICE ADDED: "+service.getServiceDescription());
 	advertise();
     }
 

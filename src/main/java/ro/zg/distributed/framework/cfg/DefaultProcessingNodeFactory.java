@@ -15,17 +15,23 @@
  ******************************************************************************/
 package ro.zg.distributed.framework.cfg;
 
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.jgroups.ChannelException;
 
 import ro.zg.distributed.framework.DistributedService;
+import ro.zg.distributed.framework.DistributedServiceDescription;
 import ro.zg.distributed.framework.ProcessingNode;
 import ro.zg.exceptions.ObjectCreationException;
 import ro.zg.factory.ObjectFactory;
+import ro.zg.log.Log;
+import ro.zg.util.logging.Logger;
+import ro.zg.util.logging.MasterLogManager;
 
 public class DefaultProcessingNodeFactory implements ObjectFactory<ProcessingNodeConfiguration, ProcessingNode> {
+    private static Logger logger = MasterLogManager.getLogger(DefaultProcessingNodeFactory.class.getName());
     private ObjectFactory<DistributedServiceConfiguration, DistributedService> distributedServiceFactory = new DefaultDistributedServiceFactory();
 
     public ProcessingNode createObject(ProcessingNodeConfiguration template) throws ObjectCreationException {
@@ -37,7 +43,7 @@ public class DefaultProcessingNodeFactory implements ObjectFactory<ProcessingNod
 	}
 
 	processingNode = new ProcessingNode(template.getGroupName());
-	if(template.getDefaultBindAddress() != null) {
+	if (template.getDefaultBindAddress() != null) {
 	    System.setProperty("jgroups.bind_addr", template.getDefaultBindAddress());
 	}
 	try {
@@ -48,12 +54,15 @@ public class DefaultProcessingNodeFactory implements ObjectFactory<ProcessingNod
 	}
 	if (template.getServicesConfiguration() != null) {
 	    for (DistributedServiceConfiguration dsc : template.getServicesConfiguration()) {
-		/* 
-		 * create a new instance for this service only if the maximum allowed instances is
-		 * not passed
-		 */
-		if (processingNode.getNumberOfInstancesForService(dsc.getServiceDescription()) < dsc
-			.getMaxNumberOfInstancesPerGroup()) {
+
+		boolean startConditionSatisfied;
+		try {
+		    startConditionSatisfied = isServiceStartConditionSatisfied(dsc,processingNode);
+		} catch (Exception e) {
+		    throw new ObjectCreationException("Could not create a processing node for group '"
+			    + template.getGroupName() + "' because could not check start condition for service "+dsc.getServiceDescription(), e);
+		}
+		if (startConditionSatisfied) {
 		    dsc.setResourcesLoader(template.getResourcesLoader());
 		    dsc.setProcessingNode(processingNode);
 		    processingNode.addService(distributedServiceFactory.createObject(dsc));
@@ -64,14 +73,40 @@ public class DefaultProcessingNodeFactory implements ObjectFactory<ProcessingNod
 	return processingNode;
     }
 
+    private boolean isServiceStartConditionSatisfied(DistributedServiceConfiguration dsc, ProcessingNode processingNode)
+	    throws Exception {
+	DistributedServiceDescription desc = dsc.getServiceDescription();
+	/*
+	 * create a new instance for this service only if the maximum allowed instances is not passed
+	 */
+	int maxNumberOfInstancesPerGroup = dsc.getMaxNumberOfInstancesPerGroup();
+	if (processingNode.getNumberOfInstancesForService(desc) >= maxNumberOfInstancesPerGroup) {
+	    logger.info("SERVICE SKIPPED: " + desc + " -> there are already " + maxNumberOfInstancesPerGroup
+		    + " instances in cluster");
+	    return false;
+	}
+	/* check if we have any host restrictions */
+	List<String> allowedHosts = dsc.getAllowedHosts();
+
+	String hostName = InetAddress.getLocalHost().getHostName();
+	if (allowedHosts != null && !allowedHosts.contains(hostName)) {
+	    logger.info("SERVICE SKIPPED: " + desc + " -> hostname (" + hostName
+		    + ") not included in the allowed hosts list " + allowedHosts);
+	    return false;
+	}
+
+	return true;
+
+    }
+
     private List<String> validate(ProcessingNodeConfiguration template) {
 	List<String> errors = new ArrayList<String>();
 	if (template == null) {
 	    errors.add("ProcessingNodeConfiguration object cannot be null");
 	} else {
-//	    if (template.getGroupName() == null) {
-//		errors.add("groupName field cannot be null");
-//	    }
+	    // if (template.getGroupName() == null) {
+	    // errors.add("groupName field cannot be null");
+	    // }
 	}
 	return errors;
     }

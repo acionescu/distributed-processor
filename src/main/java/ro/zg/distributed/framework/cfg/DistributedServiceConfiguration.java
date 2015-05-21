@@ -15,6 +15,8 @@
  ******************************************************************************/
 package ro.zg.distributed.framework.cfg;
 
+import java.util.List;
+
 import ro.zg.distributed.framework.DistributedService;
 import ro.zg.distributed.framework.DistributedServiceDescription;
 import ro.zg.distributed.framework.ProcessingNode;
@@ -47,6 +49,8 @@ public class DistributedServiceConfiguration {
     private ProcessingNode processingNode;
     
     private int maxNumberOfInstancesPerGroup = 1;
+    
+    private List<String> allowedHosts;
     
     public String getName() {
         return name;
@@ -142,6 +146,18 @@ public class DistributedServiceConfiguration {
      */
     public void setRuntimeServiceConfig(RuntimeServiceConfiguration runtimeServiceConfig) {
         this.runtimeServiceConfig = runtimeServiceConfig;
+    }
+    /**
+     * @return the allowedHosts
+     */
+    public List<String> getAllowedHosts() {
+        return allowedHosts;
+    }
+    /**
+     * @param allowedHosts the allowedHosts to set
+     */
+    public void setAllowedHosts(List<String> allowedHosts) {
+        this.allowedHosts = allowedHosts;
     }
     
 }
