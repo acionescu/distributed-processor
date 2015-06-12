@@ -50,6 +50,10 @@ public class ReflectionBasedDistributedService extends AbstractDistributedServic
 		ReflectionUtility.callMethod(targetObject, "init", new Object[0]);
 	    }
 	    compileArgumetsForMethods();
+	    if (logger.isDebugEnabled()) {
+		logger.debug("Initializing reflection based service for target " + targetObject
+			+ " with argument types : " + compiledArgumetsTypes);
+	    }
 	} catch (Exception e) {
 	    // TODO Auto-generated catch block
 	    e.printStackTrace();
@@ -64,7 +68,14 @@ public class ReflectionBasedDistributedService extends AbstractDistributedServic
 	for (Map.Entry<String, List<String>> e : argumentsForMethods.entrySet()) {
 	    List<Class<?>> classes = new ArrayList<Class<?>>();
 	    for (String className : e.getValue()) {
-		classes.add(Class.forName(className));
+		/* use : at the end if you want to use the primitive class instead */
+		String[] cnArray = className.split(":");
+		Class<?> clazz = Class.forName(cnArray[0]);
+		if (cnArray.length > 1) {
+		    classes.add(ReflectionUtility.getPrimitiveType(clazz));
+		} else {
+		    classes.add(clazz);
+		}
 	    }
 	    compiledArgumetsTypes.put(e.getKey(), classes.toArray(new Class[0]));
 	}
@@ -86,25 +97,24 @@ public class ReflectionBasedDistributedService extends AbstractDistributedServic
 		+ argslen) : null;
 	Serializable resp = null;
 	TaskProcessingResponse tpr = null;
-	
-	
-	
-	
+
 	try {
 	    if (argumentsTypes != null) {
-		if(logger.isDebugEnabled()) {
-		    logger.debug("Calling method '"+methodName+"' on object "+targetObject+" with arguments "+Arrays.asList(arguments)+" with types "+Arrays.asList(argumentsTypes));
+		if (logger.isDebugEnabled()) {
+		    logger.debug("Calling method '" + methodName + "' on object " + targetObject + " with arguments "
+			    + Arrays.asList(arguments) + " with types " + Arrays.asList(argumentsTypes));
 		}
 		resp = (Serializable) ReflectionUtility.callMethod(targetObject, methodName, arguments, argumentsTypes);
 	    } else {
-		if(logger.isDebugEnabled()) {
-		    logger.debug("Calling method '"+methodName+"' on object "+targetObject+((arguments != null)?" with arguments "+Arrays.asList(arguments):""));
+		if (logger.isDebugEnabled()) {
+		    logger.debug("Calling method '" + methodName + "' on object " + targetObject
+			    + ((arguments != null) ? " with arguments " + Arrays.asList(arguments) : ""));
 		}
 		resp = (Serializable) ReflectionUtility.callMethod(targetObject, methodName, arguments);
 	    }
 	    tpr = new TaskProcessingResponse(task.getTaskId(), resp);
 	} catch (Exception e) {
-	    tpr = new TaskProcessingResponse(task.getTaskId(),null,e/*(Exception)e.getCause()*/);
+	    tpr = new TaskProcessingResponse(task.getTaskId(), null, e/* (Exception)e.getCause() */);
 	}
 
 	return tpr;
