@@ -31,7 +31,7 @@ public class ReflectionBasedDistributedService extends AbstractDistributedServic
     private static Logger logger = MasterLogManager.getLogger(ReflectionBasedDistributedService.class.getName());
     private Object targetObject;
     private Map<String, List<String>> argumentsForMethods;
-    private Map<String, Class<?>[]> compiledArgumetsTypes;
+    private Map<String, String[]> compiledArgumetsTypes;
     private boolean setResourceLoaderOnStart = true;
     private boolean callInitOnStart = true;
 
@@ -64,20 +64,14 @@ public class ReflectionBasedDistributedService extends AbstractDistributedServic
 	if (argumentsForMethods == null) {
 	    return;
 	}
-	compiledArgumetsTypes = new HashMap<String, Class<?>[]>();
+	compiledArgumetsTypes = new HashMap<String, String[]>();
 	for (Map.Entry<String, List<String>> e : argumentsForMethods.entrySet()) {
-	    List<Class<?>> classes = new ArrayList<Class<?>>();
+	    List<String> classes = new ArrayList<String>();
 	    for (String className : e.getValue()) {
-		/* use : at the end if you want to use the primitive class instead */
-		String[] cnArray = className.split(":");
-		Class<?> clazz = Class.forName(cnArray[0]);
-		if (cnArray.length > 1) {
-		    classes.add(ReflectionUtility.getPrimitiveType(clazz));
-		} else {
-		    classes.add(clazz);
-		}
+
+		classes.add(className);
 	    }
-	    compiledArgumetsTypes.put(e.getKey(), classes.toArray(new Class[0]));
+	    compiledArgumetsTypes.put(e.getKey(), classes.toArray(new String[0]));
 	}
     }
 
@@ -93,7 +87,7 @@ public class ReflectionBasedDistributedService extends AbstractDistributedServic
 	    argslen = arguments.length;
 	}
 	/* get the arguments types for this method if defined */
-	Class<?>[] argumentsTypes = (compiledArgumetsTypes != null) ? compiledArgumetsTypes.get(methodName + "."
+	String[] argumentsTypes = (compiledArgumetsTypes != null) ? compiledArgumetsTypes.get(methodName + "."
 		+ argslen) : null;
 	Serializable resp = null;
 	TaskProcessingResponse tpr = null;
