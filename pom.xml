@@ -16,13 +16,12 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
    <modelVersion>4.0.0</modelVersion>
    <groupId>net.segoia</groupId>
    <artifactId>distributed-processor</artifactId>
    <name>distributed-processor</name>
-   <version>0.0.1-SNAPSHOT</version>
+   <version>0.0.1</version>
    <description>A distributed task processing framework</description>
    <url>https://github.com/acionescu/distributed-processor</url>
     <licenses>
@@ -136,7 +135,7 @@
       <dependency>
          <groupId>net.segoia</groupId>
          <artifactId>commons</artifactId>
-         <version>0.0.4-SNAPSHOT</version>
+         <version>0.0.4</version>
       </dependency>
       <dependency>
          <groupId>junit</groupId>
