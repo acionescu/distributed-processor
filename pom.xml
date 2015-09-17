@@ -21,7 +21,7 @@
    <groupId>net.segoia</groupId>
    <artifactId>distributed-processor</artifactId>
    <name>distributed-processor</name>
-   <version>0.0.2</version>
+   <version>0.0.3-SNAPSHOT</version>
    <description>A distributed task processing framework</description>
    <url>https://github.com/acionescu/distributed-processor</url>
     <licenses>
