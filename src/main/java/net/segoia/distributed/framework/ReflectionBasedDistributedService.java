@@ -55,6 +55,12 @@ public class ReflectionBasedDistributedService extends AbstractDistributedServic
 		logger.debug("Initializing reflection based service for target " + targetObject
 			+ " with argument types : " + compiledArgumetsTypes);
 	    }
+	    
+	    /* call start */
+	    logger.debug("Calling start on target "+targetObject);
+	    ReflectionUtility.callMethod(targetObject, "start", new Object[0]);
+	    
+	    
 	} catch (Exception e) {
 	    // TODO Auto-generated catch block
 	    e.printStackTrace();

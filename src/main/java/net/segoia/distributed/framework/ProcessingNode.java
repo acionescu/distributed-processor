@@ -203,7 +203,7 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
     }
 
     private void startServices() throws ContextAwareException {
-	logger.debug("Starting services");
+	logger.info("Starting services");
 	for (DistributedService ds : localServices.values()) {
 	    ds.start();
 	}
@@ -315,9 +315,9 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
 	    int index = 0;
 	    Integer indexObj = addressesIndexes.get(sd);
 	    if (indexObj != null) {
-		index = indexObj;
+		index = indexObj % size;
 	    }
-	    addressesIndexes.put(sd, (index + 1) % size);
+	    addressesIndexes.put(sd, (index + 1) );
 	    return servAddresses.get(index);
 	}
 	return null;
@@ -344,17 +344,18 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
 
 		for (List<Address> list : globalServices.values()) {
 
-		    for (int i = 0; i < list.size(); i++) {
-			Address addr = list.get(i);
-			if (addr.toString().equals(oldMember.toString())) {
-			    list.remove(i);
-			    break;
-			}
-		    }
-		    // list = newList;
+//		    for (int i = 0; i < list.size(); i++) {
+//			Address addr = list.get(i);
+//			if (addr.toString().equals(oldMember.toString())) {
+//			    list.remove(i);
+//			    break;
+//			}
+//		    }
+		    list.remove(oldMember);
 		}
 	    }
 	}
+	
 	members = newMembers;
 	Log.info(this, "Members updated: " + members);
     }
@@ -495,6 +496,9 @@ public class ProcessingNode implements Receiver, Destination<Task, TaskProcessin
 
 	List<Address> addresses = new_view.getMembers();
 	updateMemberAndServices(members, addresses);
+	/* advertise services on members update */
+	advertise();
+	
 	checkMandatoryServices();
     }
 
