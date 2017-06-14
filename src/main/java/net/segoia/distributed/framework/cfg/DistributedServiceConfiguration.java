@@ -53,6 +53,11 @@ public class DistributedServiceConfiguration {
     
     private List<String> allowedHosts;
     
+    /**
+     * The name of the container in which this service is running
+     */
+    private String container;
+    
     public String getName() {
         return name;
     }
@@ -110,7 +115,7 @@ public class DistributedServiceConfiguration {
     }
  
     public DistributedServiceDescription getServiceDescription(){
-	return new DistributedServiceDescription(name,null);
+	return new DistributedServiceDescription(name,description,container);
     }
     /**
      * @return the instance
@@ -159,6 +164,12 @@ public class DistributedServiceConfiguration {
      */
     public void setAllowedHosts(List<String> allowedHosts) {
         this.allowedHosts = allowedHosts;
+    }
+    public String getContainer() {
+        return container;
+    }
+    public void setContainer(String container) {
+        this.container = container;
     }
     
 }
