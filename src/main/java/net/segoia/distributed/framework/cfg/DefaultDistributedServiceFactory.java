@@ -70,7 +70,8 @@ public class DefaultDistributedServiceFactory implements
 		}
 	    }
 
-	    DistributedServiceDescription dsd = serviceConfiguration.getServiceDescription();
+	    DistributedServiceDescription dsd = new DistributedServiceDescription(serviceConfiguration.getName(),
+		    serviceConfiguration.getDescription());
 
 	    try {
 		distributedService = (AbstractDistributedService) dsClass.getConstructor(

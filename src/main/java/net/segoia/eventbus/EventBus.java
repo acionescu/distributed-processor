@@ -17,7 +17,7 @@
 package net.segoia.eventbus;
 
 public interface EventBus {
-    
+
     void postEvent(Event event);
     
     void registerListener(EventListener listener);
